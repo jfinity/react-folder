@@ -1,19 +1,31 @@
 import { ComponentType, ReactNode } from "react";
 
-type DirName = string;
-type DirId = any | string | number;
+type KeyPart = string;
 
 export const Folder: ComponentType<{
-  name?: DirName;
-  children?: ReactNode | (({ path }: { path: string }) => ReactNode);
+  name?: KeyPart;
+  ext?: KeyPart;
+  children?:
+    | ReactNode
+    | ((path: string, name: KeyPart, ext: KeyPart) => ReactNode);
 }>;
-export function mkDir<P>(
-  LOC: ComponentType<P>
-): ComponentType<P & { folder?: DirName }>;
-export function useCWDRef(): () => null | string;
 
-export function createSystem(options?: {
-  separator?: string;
-  useFinalId?: () => DirId;
-  logWarning?: typeof console.log;
-}): [typeof Folder, typeof mkDir, typeof useCWDRef];
+export function mkdir<Props>(
+  options: { name?: KeyPart; ext?: KeyPart } | null | undefined,
+  LOC: ComponentType<Props>
+): ComponentType<Props & { folder?: KeyPart; group?: KeyPart }>;
+
+export function usePWD(): string;
+export function useJournal<Kind, Payload, File = string>(
+  dispatch: (action: {
+    dir: string;
+    file: File;
+    type: Kind;
+    payload: Payload;
+  }) => void,
+  file: File
+): (type: Kind, payload: Payload) => void;
+
+export const Monitor: ComponentType<{
+  watch: (type: string, payload?: any) => void;
+}>;

@@ -1,159 +1,168 @@
-import React, { createContext, useRef, useContext, useEffect } from "react";
+import React, { createContext, useContext, useRef, useEffect } from "react";
 
-const WarningCode = {
-  UnfoundClaim: 1 << 0,
-  ContestedClaim: 1 << 1,
-  ClaimCorruption: 1 << 2
+const initKey = (name = "", ext = "") => {
+  const prefix = name.toString();
+  const suffix = ext.toString();
+  const infix = suffix ? "." : "";
+  const key = prefix + infix + suffix || ".";
+
+  return prefix.indexOf(".") > -1 || /\/|\.\.|.\.$/.test(key) ? "" : key;
 };
 
-const logNothing = () => {};
+const writeKey = (key, contents) => {
+  if (contents.has(key)) {
+    return contents.set(key, +contents.get(key) + 1 || 2).get(key);
+  }
 
-class Meta {
-  claims = new Map();
+  contents.set(key, 1);
+  return 0;
+};
 
-  reclaim(before = "", after = "", logWarning = logNothing, path = "") {
-    const { claims } = this;
-    const prior = claims.get(before) || 0;
-    const next = claims.get(after) || 0;
-    let warning = 0;
+const eraseKey = (key, contents) => {
+  if (!contents.has(key) || contents.get(key) !== 1) {
+    return contents.set(key, +contents.get(key) - 1 || -1).get(key);
+  }
 
-    if (before !== after) {
-      if (prior > 0) {
-        if (prior === 1) {
-          claims.delete(before);
-        } else {
-          claims.set(before, prior - 1);
-        }
-      } else if (before !== "") {
-        warning |= WarningCode.UnfoundClaim;
-        logWarning("Cannot restore unfound claim: " + before, path);
-      }
+  contents.delete(key);
+  return 0;
+};
 
-      if (after !== "") {
-        claims.set(after, next + 1);
-        if (next > 0) {
-          warning |= WarningCode.ContestedClaim;
-          logWarning("Contested claim: " + after, path);
-        } else if (next < 0) {
-          warning |= WarningCode.ClaimCorruption;
-          logWarning("Corrupt claim" + after, path);
-        }
-      }
+const initNode = (path = "", contents = new Map()) => ({ path, contents });
+
+const Directory = createContext(initNode("", new Map()));
+const Watcher = createContext((type, payload) => {
+  if (payload && payload.warn) {
+    console.warn(type, payload.warn);
+  }
+});
+
+const noop = (type, payload) => {
+  type;
+  payload;
+};
+
+const useSubdir = key => {
+  const parent = useContext(Directory);
+  const { current } = useRef({
+    node: initNode(parent.path, null),
+    callback: noop
+  });
+  const subpath =
+    key === "" || key === "." ? parent.path : parent.path + key + "/";
+
+  current.callback = useContext(Watcher) || noop;
+
+  current.node =
+    subpath === current.node.path
+      ? current.node
+      : initNode(subpath, current.node.contents || new Map());
+
+  useEffect(() => {
+    if (key === "" || key === ".") {
+      return;
     }
 
-    return warning;
-  }
-}
+    const err = writeKey(key, parent.contents);
+    const handle = current.callback;
+    if (typeof handle === "function") {
+      handle("onWrite", err ? { warn: "path conflict" } : null);
+    }
 
-const useFinalMeta = () => {
-  const ref = useRef(null);
-  ref.current = ref.current || new Meta();
-  return ref.current;
+    return () => {
+      const fault = eraseKey(key, parent.contents);
+      // TODO: consider using current handle instead of cached handle
+      if (typeof handle === "function") {
+        handle("onErase", fault ? { warn: "path corruption" } : null);
+      }
+    };
+  }, [key, parent.contents]);
+
+  return current.node;
 };
 
-let idCounter = 0;
-const useFinalCommonId = () => {
-  const ref = useRef(null);
-  ref.current = ref.current || --idCounter;
-  return ref.current;
-};
+// TODO: validate the utility of the following APIs
+// const splitPath = (path = "") => path.split("/");
+// const joinPath = (steps = [""]) => steps.join("/");
+// const splitStep = (step = "") => step.split(".");
+// const joinStep = (texts = [""]) => texts.join(".");
+// const splitBoth = (path = "") => splitPath(path).map(splitStep);
+// const joinBoth = (value = [[""]]) => joinPath(value.map(joinStep));
 
-const logRed = (...args) => {
-  console.error(...args);
-};
+export const Folder = props => {
+  const { name = "", ext = "", children } = props;
+  const key = initKey(name, ext);
+  const node = useSubdir(key);
 
-export const createSystem = ({
-  separator = "__",
-  useFinalId = useFinalCommonId,
-  logWarning = logRed
-} = {}) => {
-  const Directory = createContext({
-    name: "",
-    id: null,
-    path: separator,
-    meta: new Meta()
-  });
-
-  const Folder = props => {
-    const { name = "", children } = props;
-
-    const id = useFinalId();
-    const meta = useFinalMeta();
-    const subdir = useCWDKey(name) + (name === "" ? "" : name + separator);
-    const ref = useRef(null);
-    let { current: cached = null } = ref;
-
-    // TODO: consider signalling changes through callback props
-
-    if (typeof name !== "string") {
-      throw new Error("Folder name must be a string");
-    } else if (name.indexOf(separator) > -1) {
-      throw new Error(
-        "Folder name forbids separator: " + separator + " ( " + name + " )"
+  switch (key) {
+    case "": {
+      throw new Error("Invalid folder name/extension");
+    }
+    case ".": {
+      return (
+        <React.Fragment>
+          {typeof children === "function"
+            ? children(node.path, key, name, ext)
+            : children}
+        </React.Fragment>
       );
     }
-
-    if (!cached || cached.path !== subdir || cached.name !== name) {
-      cached = {
-        name,
-        id,
-        path: subdir,
-        meta
-      };
+    default: {
+      return (
+        <Directory.Provider value={node}>
+          {typeof children === "function"
+            ? children(node.path, key, name, ext)
+            : children}
+        </Directory.Provider>
+      );
     }
+  }
+};
 
-    ref.current = cached;
+export const mkdir = (options, Component) => {
+  const { name = "", ext = "" } = options || {};
 
-    return (
-      <Directory.Provider value={ref.current}>
-        {typeof children === "function" ? children({ path: subdir }) : children}
-      </Directory.Provider>
-    );
-  };
+  return props => {
+    const { folder = name, group = ext } = props;
+    const key = initKey(folder, group);
 
-  const useCWDKey = (key = "") => {
-    const parent = useContext(Directory);
-
-    useEffect(() => {
-      parent.meta.reclaim("", key, logWarning, parent.path);
-
-      return () => {
-        parent.meta.reclaim(key, "", logWarning, parent.path);
-      };
-    }, [key, parent.meta]); // NOTE: parent.path is excluded
-
-    return parent.path;
-  };
-
-  const useCWDRef = () => {
-    const dir = useContext(Directory);
-    const ref = useRef(null);
-
-    ref.current = ref.current || {
-      path: dir ? dir.path : null,
-      working: () => ref.current.path
-    };
-
-    ref.current.path = dir ? dir.path : null;
-
-    return ref.current.working;
-  };
-
-  const mkDir = Component => props => {
-    const { folder = "" } = props;
-    return folder === "" ? (
+    return key === "." ? (
       <Component {...props} />
     ) : (
-      <Folder name={folder}>
+      <Folder name={folder} ext={group}>
         <Component {...props} />
       </Folder>
     );
   };
-
-  // TODO: consider adding state management with Files
-  // const useFiles = () => {}
-
-  return [Folder, mkDir, useCWDRef];
 };
 
-export const [Folder, mkDir, useCWDRef] = createSystem();
+export const usePWD = () => useContext(Directory).path;
+
+export const useJournal = (emit, file = "") => {
+  const { current } = useRef({ dir: "", file, emit, handle: null });
+
+  current.dir = usePWD();
+  current.file = file;
+  current.emit = emit;
+
+  current.handle =
+    current.handle ||
+    ((type, payload) => {
+      const dispatch = current.emit;
+      if (typeof dispatch === "function") {
+        dispatch({
+          dir: current.dir,
+          file: current.file,
+          type,
+          payload
+        });
+      }
+    });
+
+  return current.handle;
+};
+
+export const Monitor = props => {
+  const { watch, children } = props;
+
+  return <Watcher.Provider value={watch}>{children}</Watcher.Provider>;
+};
