@@ -155,10 +155,10 @@ export const mkdir = (options, Component) => {
     }
 
     return key === "." ? (
-      <Component pathname={next} basename={bn} {...props} />
+      <Component pwd={next} basename={bn} {...props} />
     ) : (
       <Folder name={folder}>
-        <Component pathname={next} basename={bn} {...props} />
+        <Component pwd={next} basename={bn} {...props} />
       </Folder>
     );
   };

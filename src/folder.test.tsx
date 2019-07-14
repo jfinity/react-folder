@@ -8,8 +8,8 @@ afterEach(cleanup);
 
 it("Should assemble full path", () => {
   const Wrapper = mkdir(null, ({ children }) => {
-    const pn = usePathname();
-    return <span data-testid={pn}>{children}</span>;
+    const pwd = usePathname();
+    return <span data-testid={pwd}>{children}</span>;
   });
 
   const { getByTestId } = render(
@@ -52,8 +52,8 @@ it("Should support names with non-consecutive dots", () => {
   // let action;
   // const dispatch = (value = {}) => (action = value);
 
-  const SomeComponent = mkdir(null, ({ pathname: pn }) => {
-    const text = `["${pn.replace(/\//g, '","')}"]`;
+  const SomeComponent = mkdir(null, ({ pwd }) => {
+    const text = `["${pwd.replace(/\//g, '","')}"]`;
     // const journal = useJournal(dispatch, "SomeComponent");
 
     // journal("type", { data: "data" });

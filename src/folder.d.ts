@@ -9,13 +9,13 @@ type KeyPart = string;
 
 export const Folder: ComponentType<{
   name?: KeyPart;
-  children?: ReactNode | ((pathname: string, basename: string) => ReactNode);
+  children?: ReactNode | ((pwd: string, basename: string) => ReactNode);
 }>;
 
 export function mkdir<Props>(
   options: { name?: KeyPart } | null | undefined,
   LOC: ComponentType<
-    Props & { folder?: KeyPart; pathname: string; basename: string }
+    Props & { folder?: KeyPart; pwd: string; basename: string }
   >
 ): ComponentType<Props & { folder?: KeyPart }>;
 
