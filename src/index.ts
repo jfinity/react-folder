@@ -1,1 +1,1 @@
-export { Folder, mkdir, usePWD, Monitor } from "./folder";
+export { Folder, mkdir, usePathname, Monitor } from "./folder";

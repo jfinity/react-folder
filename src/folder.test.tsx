@@ -1,15 +1,15 @@
 import React from "react";
 import { render, cleanup } from "@testing-library/react";
 import "jest-dom/extend-expect";
-import { Folder, mkdir, usePWD, Monitor } from "./folder";
+import { Folder, mkdir, usePathname, Monitor } from "./folder";
 
 // automatically unmount and cleanup DOM after the test is finished.
 afterEach(cleanup);
 
 it("Should assemble full path", () => {
   const Wrapper = mkdir(null, ({ children }) => {
-    const path = usePWD();
-    return <span data-testid={path}>{children}</span>;
+    const pn = usePathname();
+    return <span data-testid={pn}>{children}</span>;
   });
 
   const { getByTestId } = render(
@@ -48,18 +48,17 @@ it("Should assemble full path", () => {
   expect(getByTestId("ALPHA-OMEGA")).toHaveTextContent("alpha/beta/omega/");
 });
 
-it("Should support extentions/groups", () => {
+it("Should support names with non-consecutive dots", () => {
   // let action;
   // const dispatch = (value = {}) => (action = value);
 
-  const SomeComponent = mkdir(null, () => {
-    const path = usePWD();
-    const text = `["${path.replace(/\//g, '","')}"]`;
+  const SomeComponent = mkdir(null, ({ pathname: pn }) => {
+    const text = `["${pn.replace(/\//g, '","')}"]`;
     // const journal = useJournal(dispatch, "SomeComponent");
 
     // journal("type", { data: "data" });
 
-    if (text !== `[".git","0.d.ts","baz","1",""]`) {
+    if (text !== `[".git","_.d.ts","baz","1",""]`) {
       throw "this should never happen -- " + text;
     }
 
@@ -71,9 +70,9 @@ it("Should support extentions/groups", () => {
   render(
     <div>
       <div>Foo</div>
-      <Div group="git">
+      <Div folder=".git">
         {
-          <Folder name="0" ext="d.ts">
+          <Folder name="_.d.ts">
             [<div key="bar">Bar</div>,
             <Div key="baz" folder="baz">
               Baz
@@ -87,7 +86,7 @@ it("Should support extentions/groups", () => {
   );
 
   // expect(action).toMatchObject({
-  //   dir: ".git/0.d.ts/baz/1/",
+  //   dir: ".git/_.d.ts/baz/1/",
   //   file: "SomeComponent",
   //   type: "type",
   //   payload: { data: "data" }

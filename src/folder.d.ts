@@ -1,23 +1,22 @@
 import { ComponentType, ReactNode } from "react";
 
 export const Monitor: ComponentType<{
-  silent?: boolean,
-  watch?: (action: { type?: string, payload?: any }) => void;
+  silent?: boolean;
+  watch?: (action: { type?: string; payload?: any }) => void;
 }>;
 
 type KeyPart = string;
 
 export const Folder: ComponentType<{
   name?: KeyPart;
-  ext?: KeyPart;
-  children?:
-    | ReactNode
-    | ((path: string, name: KeyPart, ext: KeyPart) => ReactNode);
+  children?: ReactNode | ((pathname: string, basename: string) => ReactNode);
 }>;
 
 export function mkdir<Props>(
-  options: { name?: KeyPart; ext?: KeyPart } | null | undefined,
-  LOC: ComponentType<Props>
-): ComponentType<Props & { folder?: KeyPart; group?: KeyPart }>;
+  options: { name?: KeyPart } | null | undefined,
+  LOC: ComponentType<
+    Props & { folder?: KeyPart; pathname: string; basename: string }
+  >
+): ComponentType<Props & { folder?: KeyPart }>;
 
-export function usePWD(): string;
+export function usePathname(): string;

@@ -1,12 +1,9 @@
 import React, { createContext, useContext, useRef, useEffect } from "react";
 
-const initKey = (name = "", ext = "") => {
-  const prefix = name.toString();
-  const suffix = ext.toString();
-  const infix = suffix ? "." : "";
-  const key = prefix + infix + suffix || ".";
+const initKey = (name = ".") => {
+  const key = name.toString() || ".";
 
-  return prefix.indexOf(".") > -1 || /\/|\.\.|.\.$/.test(key) ? "" : key;
+  return /\/|\.\.|.\.$/.test(key) ? "" : key;
 };
 
 const deltaKey = (key, contents, amount = 0) => {
@@ -27,6 +24,9 @@ const Directory = createContext(initNode("", new Map()));
 
 const subpath = (path, key) =>
   key === "" || key === "." ? path : path + key + "/";
+
+const basename = path =>
+  path.slice(1 + path.lastIndexOf("/", path.length - 2), -1);
 
 const logRed = action => {
   if (action && action.payload && action.payload.warn) {
@@ -114,29 +114,26 @@ export const Monitor = props => {
 };
 
 export const Folder = props => {
-  const { name = "", ext = "", children } = props;
-  const key = initKey(name, ext);
+  const { name = "", children } = props;
+  const key = initKey(name);
   const node = useSubtree(key);
+  const bn = basename(node.path);
 
   switch (key) {
     case "": {
-      throw new Error("Invalid folder name/extension");
+      throw new Error("Invalid folder name");
     }
     case ".": {
       return (
         <React.Fragment>
-          {typeof children === "function"
-            ? children(node.path, key, name, ext)
-            : children}
+          {typeof children === "function" ? children(node.path, bn) : children}
         </React.Fragment>
       );
     }
     default: {
       return (
         <Directory.Provider value={node}>
-          {typeof children === "function"
-            ? children(node.path, key, name, ext)
-            : children}
+          {typeof children === "function" ? children(node.path, bn) : children}
         </Directory.Provider>
       );
     }
@@ -144,26 +141,27 @@ export const Folder = props => {
 };
 
 export const mkdir = (options, Component) => {
-  const { name = "", ext = "" } = options || {};
+  const { name = "" } = options || {};
 
   return props => {
-    const { folder = name, group = ext } = props;
-    const key = initKey(folder, group);
+    const { folder = name } = props;
+    const key = initKey(folder);
     const parent = useContext(Directory);
     const next = subpath(parent.path, key);
+    const bn = basename(next);
 
     if (key === "") {
-      throw new Error("Invalid folder name/extension");
+      throw new Error("Invalid folder name");
     }
 
     return key === "." ? (
-      <Component pwd={next} {...props} />
+      <Component pathname={next} basename={bn} {...props} />
     ) : (
-      <Folder name={folder} ext={group}>
-        <Component pwd={next} {...props} />
+      <Folder name={folder}>
+        <Component pathname={next} basename={bn} {...props} />
       </Folder>
     );
   };
 };
 
-export const usePWD = () => useContext(Directory).path;
+export const usePathname = () => useContext(Directory).path;
