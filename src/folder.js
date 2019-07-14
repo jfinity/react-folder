@@ -93,9 +93,9 @@ const useSubtree = key => {
 
 export const Monitor = props => {
   const { watch = echo, silent = false, children } = props;
-  const { current } = useRef({ silent, watch, xform: echo, callback: echo });
+  const { current } = useRef({ silent, watch, parent: echo, callback: echo });
 
-  current.xform = useContext(Watcher) || echo;
+  current.parent = useContext(Watcher) || echo;
   current.watch = watch || echo;
   current.silent = !!silent;
 
@@ -103,8 +103,9 @@ export const Monitor = props => {
     current.callback !== echo
       ? current.callback
       : action => {
-          const { xform: capture, watch: handle, silent: quiet } = current;
+          const { parent: capture, watch: handle, silent: quiet } = current;
           const value = quiet && capture === logRed ? action : capture(action);
+
           return value ? handle(action) : value;
         };
 
