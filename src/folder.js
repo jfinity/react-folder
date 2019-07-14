@@ -93,7 +93,7 @@ const useSubtree = key => {
 
 export const Monitor = props => {
   const { watch = echo, silent = false, children } = props;
-  const { current } = useRef({ silent, watch, xfrom: echo, callback: echo });
+  const { current } = useRef({ silent, watch, xform: echo, callback: echo });
 
   current.xform = useContext(Watcher) || echo;
   current.watch = watch || echo;
