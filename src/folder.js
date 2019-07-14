@@ -78,7 +78,7 @@ const useSubtree = key => {
         handle({ type: "onErase", payload: { warn: check(total, 0) } });
       }
     };
-  }, [key, parent.contents]);
+  }, [key, parent.contents, current]); // current (ref) should not change
 
   return current.node;
 };
