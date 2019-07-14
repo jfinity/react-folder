@@ -25,6 +25,9 @@ const initNode = (path = "", contents = new Map()) => ({ path, contents });
 
 const Directory = createContext(initNode("", new Map()));
 
+const subpath = (path, key) =>
+  key === "" || key === "." ? path : path + key + "/";
+
 const logRed = action => {
   if (action && action.payload && action.payload.warn) {
     console.error(action.type, action.payload.warn, action);
@@ -41,21 +44,21 @@ const corrupt = (val, ok) => (val < ok ? "corrupt" : "");
 
 const echo = action => action;
 
-const useSubdir = key => {
+const useSubtree = key => {
   const parent = useContext(Directory);
+  const next = subpath(parent.path, key);
+
   const { current } = useRef({
     node: initNode(parent.path, null),
     callback: echo
   });
-  const subpath =
-    key === "" || key === "." ? parent.path : parent.path + key + "/";
 
   current.callback = useContext(Watcher) || echo;
 
   current.node =
-    subpath === current.node.path
+    next === current.node.path
       ? current.node
-      : initNode(subpath, current.node.contents || new Map());
+      : initNode(next, current.node.contents || new Map());
 
   useEffect(() => {
     if (key === "" || key === ".") {
@@ -113,7 +116,7 @@ export const Monitor = props => {
 export const Folder = props => {
   const { name = "", ext = "", children } = props;
   const key = initKey(name, ext);
-  const node = useSubdir(key);
+  const node = useSubtree(key);
 
   switch (key) {
     case "": {
@@ -146,12 +149,18 @@ export const mkdir = (options, Component) => {
   return props => {
     const { folder = name, group = ext } = props;
     const key = initKey(folder, group);
+    const parent = useContext(Directory);
+    const next = subpath(parent.path, key);
+
+    if (key === "") {
+      throw new Error("Invalid folder name/extension");
+    }
 
     return key === "." ? (
-      <Component {...props} />
+      <Component pwd={next} {...props} />
     ) : (
       <Folder name={folder} ext={group}>
-        <Component {...props} />
+        <Component pwd={next} {...props} />
       </Folder>
     );
   };
