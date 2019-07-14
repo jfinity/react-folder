@@ -1,7 +1,7 @@
 import React from "react";
 import { render, cleanup } from "@testing-library/react";
 import "jest-dom/extend-expect";
-import { Folder, mkdir, usePWD, useJournal, Monitor } from "./folder";
+import { Folder, mkdir, usePWD, Monitor } from "./folder";
 
 // automatically unmount and cleanup DOM after the test is finished.
 afterEach(cleanup);
@@ -48,16 +48,16 @@ it("Should assemble full path", () => {
   expect(getByTestId("ALPHA-OMEGA")).toHaveTextContent("alpha/beta/omega/");
 });
 
-it("Should support extentions/groups and action creation", () => {
+it("Should support extentions/groups", () => {
   let action;
   const dispatch = (value = {}) => (action = value);
 
   const SomeComponent = mkdir(null, () => {
     const path = usePWD();
     const text = `["${path.replace(/\//g, '","')}"]`;
-    const journal = useJournal(dispatch, "SomeComponent");
+    // const journal = useJournal(dispatch, "SomeComponent");
 
-    journal("type", { data: "data" });
+    // journal("type", { data: "data" });
 
     if (text !== `[".git","0.d.ts","baz","1",""]`) {
       throw "this should never happen -- " + text;
@@ -86,12 +86,12 @@ it("Should support extentions/groups and action creation", () => {
     </div>
   );
 
-  expect(action).toMatchObject({
-    dir: ".git/0.d.ts/baz/1/",
-    file: "SomeComponent",
-    type: "type",
-    payload: { data: "data" }
-  });
+  // expect(action).toMatchObject({
+  //   dir: ".git/0.d.ts/baz/1/",
+  //   file: "SomeComponent",
+  //   type: "type",
+  //   payload: { data: "data" }
+  // });
 });
 
 it("Should detect naming collisions", () => {
