@@ -9,48 +9,48 @@ const initKey = (name = "", ext = "") => {
   return prefix.indexOf(".") > -1 || /\/|\.\.|.\.$/.test(key) ? "" : key;
 };
 
-const writeKey = (key, contents) => {
-  if (contents.has(key)) {
-    return contents.set(key, +contents.get(key) + 1 || 2).get(key);
+const deltaKey = (key, contents, amount = 0) => {
+  const total = (0 | contents.get(key)) + amount;
+
+  if (total === 0) {
+    contents.delete(key);
+  } else {
+    contents.set(key, total);
   }
 
-  contents.set(key, 1);
-  return 0;
-};
-
-const eraseKey = (key, contents) => {
-  if (!contents.has(key) || contents.get(key) !== 1) {
-    return contents.set(key, +contents.get(key) - 1 || -1).get(key);
-  }
-
-  contents.delete(key);
-  return 0;
+  return total;
 };
 
 const initNode = (path = "", contents = new Map()) => ({ path, contents });
 
 const Directory = createContext(initNode("", new Map()));
-const Watcher = createContext((type, payload) => {
-  if (payload && payload.warn) {
-    console.warn(type, payload.warn);
-  }
-});
 
-const noop = (type, payload) => {
-  type;
-  payload;
+const logRed = action => {
+  if (action && action.payload && action.payload.warn) {
+    console.error(action.type, action.payload.warn, action);
+  }
+
+  return action;
 };
+
+const Watcher = createContext(logRed);
+
+const check = (val, ok) => conflict(val, ok) || corrupt(val, ok);
+const conflict = (val, ok) => (val > ok ? "conflict" : "");
+const corrupt = (val, ok) => (val < ok ? "corrupt" : "");
+
+const echo = action => action;
 
 const useSubdir = key => {
   const parent = useContext(Directory);
   const { current } = useRef({
     node: initNode(parent.path, null),
-    callback: noop
+    callback: echo
   });
   const subpath =
     key === "" || key === "." ? parent.path : parent.path + key + "/";
 
-  current.callback = useContext(Watcher) || noop;
+  current.callback = useContext(Watcher) || echo;
 
   current.node =
     subpath === current.node.path
@@ -62,17 +62,17 @@ const useSubdir = key => {
       return;
     }
 
-    const err = writeKey(key, parent.contents);
+    const amount = deltaKey(key, parent.contents, 1);
     const handle = current.callback;
     if (typeof handle === "function") {
-      handle("onWrite", err ? { warn: "path conflict" } : null);
+      handle({ type: "onWrite", payload: { warn: check(amount, 1) } });
     }
 
     return () => {
-      const fault = eraseKey(key, parent.contents);
-      // TODO: consider using current handle instead of cached handle
+      const total = deltaKey(key, parent.contents, -1);
+      // TODO: consider current handle vs. cached handle implications
       if (typeof handle === "function") {
-        handle("onErase", fault ? { warn: "path corruption" } : null);
+        handle({ type: "onErase", payload: { warn: check(total, 0) } });
       }
     };
   }, [key, parent.contents]);
@@ -87,6 +87,28 @@ const useSubdir = key => {
 // const joinStep = (texts = [""]) => texts.join(".");
 // const splitBoth = (path = "") => splitPath(path).map(splitStep);
 // const joinBoth = (value = [[""]]) => joinPath(value.map(joinStep));
+
+export const Monitor = props => {
+  const { watch = echo, silent = false, children } = props;
+  const { current } = useRef({ silent, watch, xfrom: echo, callback: echo });
+
+  current.xform = useContext(Watcher) || echo;
+  current.watch = watch || echo;
+  current.silent = !!silent;
+
+  current.callback =
+    current.callback !== echo
+      ? current.callback
+      : action => {
+          const { xform: capture, watch: handle, silent: quiet } = current;
+          const value = quiet && capture === logRed ? action : capture(action);
+          return value ? handle(action) : value;
+        };
+
+  return (
+    <Watcher.Provider value={current.callback}>{children}</Watcher.Provider>
+  );
+};
 
 export const Folder = props => {
   const { name = "", ext = "", children } = props;
@@ -137,6 +159,7 @@ export const mkdir = (options, Component) => {
 
 export const usePWD = () => useContext(Directory).path;
 
+// TODO: consider relocating this function in a different package
 export const useJournal = (emit, file = "") => {
   const { current } = useRef({ dir: "", file, emit, handle: null });
 
@@ -159,10 +182,4 @@ export const useJournal = (emit, file = "") => {
     });
 
   return current.handle;
-};
-
-export const Monitor = props => {
-  const { watch, children } = props;
-
-  return <Watcher.Provider value={watch}>{children}</Watcher.Provider>;
 };

@@ -1,5 +1,10 @@
 import { ComponentType, ReactNode } from "react";
 
+export const Monitor: ComponentType<{
+  silent?: boolean,
+  watch?: (action: { type?: string, payload?: any }) => void;
+}>;
+
 type KeyPart = string;
 
 export const Folder: ComponentType<{
@@ -25,7 +30,3 @@ export function useJournal<Kind, Payload, File = string>(
   }) => void,
   file: File
 ): (type: Kind, payload: Payload) => void;
-
-export const Monitor: ComponentType<{
-  watch: (type: string, payload?: any) => void;
-}>;

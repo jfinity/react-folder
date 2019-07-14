@@ -96,12 +96,12 @@ it("Should support extentions/groups and action creation", () => {
 
 it("Should detect naming collisions", () => {
   let action;
-  const watch = (type = "", payload = {}) => (action = { type, payload });
+  const watch = (value = {}) => (action = value);
 
   const Div = mkdir(null, props => <div {...props} />);
 
   render(
-    <Monitor watch={watch}>
+    <Monitor silent watch={watch}>
       <Div folder="identical" />
       <Div folder="identical" />
     </Monitor>
