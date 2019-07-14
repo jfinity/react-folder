@@ -167,28 +167,3 @@ export const mkdir = (options, Component) => {
 };
 
 export const usePWD = () => useContext(Directory).path;
-
-// TODO: consider relocating this function in a different package
-// export const useJournal = (emit, file = "") => {
-//   const { current } = useRef({ dir: "", file, emit, handle: null });
-
-//   current.dir = usePWD();
-//   current.file = file;
-//   current.emit = emit;
-
-//   current.handle =
-//     current.handle ||
-//     ((type, payload) => {
-//       const dispatch = current.emit;
-//       if (typeof dispatch === "function") {
-//         dispatch({
-//           dir: current.dir,
-//           file: current.file,
-//           type,
-//           payload
-//         });
-//       }
-//     });
-
-//   return current.handle;
-// };

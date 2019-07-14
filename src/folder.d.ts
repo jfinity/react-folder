@@ -21,12 +21,3 @@ export function mkdir<Props>(
 ): ComponentType<Props & { folder?: KeyPart; group?: KeyPart }>;
 
 export function usePWD(): string;
-// export function useJournal<Kind, Payload, File = string>(
-//   dispatch: (action: {
-//     dir: string;
-//     file: File;
-//     type: Kind;
-//     payload: Payload;
-//   }) => void,
-//   file: File
-// ): (type: Kind, payload: Payload) => void;

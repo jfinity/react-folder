@@ -49,8 +49,8 @@ it("Should assemble full path", () => {
 });
 
 it("Should support extentions/groups", () => {
-  let action;
-  const dispatch = (value = {}) => (action = value);
+  // let action;
+  // const dispatch = (value = {}) => (action = value);
 
   const SomeComponent = mkdir(null, () => {
     const path = usePWD();
