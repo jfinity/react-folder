@@ -1,1 +1,7 @@
-export { Folder, mkdir, usePathname, Monitor } from "./folder";
+export {
+  Folder,
+  mkdir,
+  usePathname,
+  useDevRenderSignal,
+  Monitor
+} from "./folder";

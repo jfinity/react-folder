@@ -20,3 +20,5 @@ export function mkdir<Props>(
 ): ComponentType<Props & { folder?: KeyPart }>;
 
 export function usePathname(): string;
+
+export function useDevRenderSignal(label?: string, detail?: any): void;

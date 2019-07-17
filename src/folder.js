@@ -68,14 +68,14 @@ const useSubtree = key => {
     const amount = deltaKey(key, parent.contents, 1);
     const handle = current.callback;
     if (typeof handle === "function") {
-      handle({ type: "onWrite", payload: { warn: check(amount, 1) } });
+      handle({ type: "onWrite/", payload: { warn: check(amount, 1) } });
     }
 
     return () => {
       const total = deltaKey(key, parent.contents, -1);
       // TODO: consider current handle vs. cached handle implications
       if (typeof handle === "function") {
-        handle({ type: "onErase", payload: { warn: check(total, 0) } });
+        handle({ type: "onErase/", payload: { warn: check(total, 0) } });
       }
     };
   }, [key, parent.contents, current]); // current (ref) should not change
@@ -90,6 +90,26 @@ const useSubtree = key => {
 // const joinStep = (texts = [""]) => texts.join(".");
 // const splitBoth = (path = "") => splitPath(path).map(splitStep);
 // const joinBoth = (value = [[""]]) => joinPath(value.map(joinStep));
+
+export const usePathname = () => useContext(Directory).path;
+
+export const useDevRenderSignal =
+  process.env.NODE_ENV === "development"
+    ? (label = "", detail = null) => {
+        const callback = useContext(Watcher) || echo;
+        const pwd = usePathname();
+        const trace = useRef(null);
+
+        trace.current = trace.current || new Error("trace").stack;
+
+        useEffect(() => {
+          callback({
+            type: "onRender/",
+            payload: { pwd, label, detail, trace }
+          });
+        });
+      }
+    : () => {};
 
 export const Monitor = props => {
   const { watch = echo, silent = false, children } = props;
@@ -109,6 +129,8 @@ export const Monitor = props => {
           return value ? handle(action) : value;
         };
 
+  useDevRenderSignal("folder.js/Monitor/");
+
   return (
     <Watcher.Provider value={current.callback}>{children}</Watcher.Provider>
   );
@@ -119,6 +141,8 @@ export const Folder = props => {
   const key = initKey(name);
   const node = useSubtree(key);
   const bn = basename(node.path);
+
+  useDevRenderSignal("folder.js/Folder/");
 
   switch (key) {
     case "": {
@@ -164,5 +188,3 @@ export const mkdir = (options, Component) => {
     );
   };
 };
-
-export const usePathname = () => useContext(Directory).path;

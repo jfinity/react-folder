@@ -107,7 +107,7 @@ it("Should detect naming collisions", () => {
   );
 
   expect(action).toMatchObject({
-    type: "onWrite",
+    type: "onWrite/",
     payload: {
       warn: expect.anything()
     }
